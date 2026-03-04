@@ -1,7 +1,7 @@
 import attention
 import torch
 import torch.nn as nn
-from typing import Optional
+from typing import Optional, Union
 import numpy as np
 from config import TransformerConfig
 
@@ -126,7 +126,8 @@ class CausalLanguageModel(nn.Module):
         super().__init__()
 
         self.transformer = TransformerModel(config)
-        self.linear = nn.Linear(config.hidden_size, config.vocab_size)
+        self.linear = nn.Linear(config.hidden_size, config.vocab_size, bias=False)
+        self.linear.weight = self.transformer.token_embeddings.weight  # weight tying
         self.transformer_config = config
 
     def forward(self, input_ids: torch.Tensor, labels: Optional[torch.Tensor] = None) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
