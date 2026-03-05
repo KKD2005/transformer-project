@@ -1,11 +1,22 @@
+import sys
+import os
+
+_here = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(_here, '..'))        # project root → model/
+sys.path.insert(0, _here)                             # training/ → lr_schedule
+sys.path.insert(0, os.path.join(_here, '..', 'data')) # data/ → generate_dataset
+
 from dataclasses import dataclass
+from typing import List
 from model import config, transformer
 import torch
 import torch.nn as nn
 from lr_schedule import get_lr_scheduler
-import os
 from tqdm import tqdm
 import numpy as np
+from transformers import PreTrainedTokenizerFast
+from datasets import load_dataset
+from generate_dataset import GSM8KDataset
 
 @dataclass
 class TrainingConfig:
@@ -31,6 +42,14 @@ class TrainingConfig:
     # Paths
     output_dir: str = "./gsm9k_model"
     log_dir: str = "./logs"
+
+_tokenizer_path = os.path.join(_here, '..', 'data', 'gsm8k_tokenizer.json')
+tokenizer = PreTrainedTokenizerFast(
+    tokenizer_file=_tokenizer_path,
+    pad_token="<pad>",
+    eos_token="<eos>",
+    bos_token="<bos>",
+)
 
 training_config = TrainingConfig(vocab_size=tokenizer.vocab_size)
 model_config = config.TransformerConfig(
@@ -238,3 +257,13 @@ class Trainer:
             print(f"Epoch {epoch + 1} completed. Average loss: {avg_epoch_loss:.4f}")
         save_model(self.model, self.tokenizer, self.config.output_dir)
         print("Training completed!")
+
+
+if __name__ == "__main__":
+    raw_dataset = load_dataset("openai/gsm8k", "main")
+    train_dataset = GSM8KDataset(
+        raw_dataset, tokenizer,
+        max_length=training_config.max_position_embeddings
+    )
+    trainer = Trainer(model, train_dataset, tokenizer, training_config)
+    trainer.train()
