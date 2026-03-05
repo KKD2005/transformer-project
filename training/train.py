@@ -30,7 +30,7 @@ class TrainingConfig:
     use_causal_mask: bool = True
 
     # Training hyperparameters
-    batch_size: int = 64
+    batch_size: int = 16
     learning_rate: float = 3e-4
     weight_decay: float = 0.1
     num_epochs: int = 3 #TBD
@@ -40,7 +40,7 @@ class TrainingConfig:
     eval_steps: int = 200
 
     # Paths
-    output_dir: str = "./gsm9k_model"
+    output_dir: str = "./gsm8k_model"
     log_dir: str = "./logs"
 
 _tokenizer_path = os.path.join(_here, '..', 'data', 'gsm8k_tokenizer.json')
