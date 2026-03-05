@@ -1,7 +1,7 @@
 from model import attention
 import torch
 import torch.nn as nn
-from typing import Optional, Union
+from typing import Optional, Union, Tuple
 import numpy as np
 from model.config import TransformerConfig
 
