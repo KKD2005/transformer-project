@@ -6,7 +6,7 @@ class GSM8KDataset:
         self.dataset = dataset
         self.tokenizer = tokenizer
         self.max_length = max_length
-        self.max_samples = max_samples if max_samples is not None else len(dataset)
+        self.max_samples = max_samples if max_samples is not None else len(dataset['train'])
     def __len__(self):
         return self.max_samples
     def __getitem__(self, idx):
