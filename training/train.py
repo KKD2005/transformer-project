@@ -44,6 +44,11 @@ class TrainingConfig:
     log_dir: str = "./logs"
 
 _tokenizer_path = os.path.join(_here, '..', 'data', 'gsm8k_tokenizer.json')
+if not os.path.exists(_tokenizer_path):
+    raise FileNotFoundError(
+        f"Tokenizer not found at {_tokenizer_path}\n"
+        "Run the tokenizer training cell in the notebook first."
+    )
 tokenizer = PreTrainedTokenizerFast(
     tokenizer_file=_tokenizer_path,
     pad_token="<pad>",
