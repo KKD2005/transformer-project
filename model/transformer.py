@@ -1,4 +1,4 @@
-import attention
+from model import attention
 import torch
 import torch.nn as nn
 from typing import Optional, Union
