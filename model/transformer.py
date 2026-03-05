@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 from typing import Optional, Union
 import numpy as np
-from config import TransformerConfig
+from model.config import TransformerConfig
 
 
 class FeedForward(nn.Module):
