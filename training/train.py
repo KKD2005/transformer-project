@@ -266,9 +266,11 @@ class Trainer:
 
 if __name__ == "__main__":
     raw_dataset = load_dataset("openai/gsm8k", "main")
+    print(training_config.max_position_embeddings)
     train_dataset = GSM8KDataset(
         raw_dataset, tokenizer,
         max_length=training_config.max_position_embeddings
     )
+    print(len(train_dataset))
     trainer = Trainer(model, train_dataset, tokenizer, training_config)
     trainer.train()
