@@ -247,7 +247,7 @@ class Trainer:
 
                 if self.global_step % self.config.eval_steps == 0:
                     print(f"\nEvaluating model at step {self.global_step}:")
-                    evaluate_model(self.model, self.tokenizer, ["<problem>A robe takes 2 bolts of blue fiber and half that much white fiber. How many bolts in total does it take?</problem>\n", "<problem>Janet’s ducks lay 16 eggs per day. She eats three for breakfast every morning and bakes muffins for her friends every day with four. She sells the remainder at the farmers' market daily for $2 per fresh duck egg. How much in dollars does she make every day at the farmers' market?</problem>\n"])
+                    evaluate_model(self.model, self.tokenizer, ["<problem>What is ((192 \u00d7 9) + 31) + 22?</problem>\n", "<problem>What is (57 \u00d7 5) + 11?</problem>\n","<problem>Find the value of (16 - 23) \u00d7 6.</problem>\n" ])
                     
                     
                 if self.global_step%self.config.save_steps==0:
@@ -265,7 +265,7 @@ class Trainer:
 
 
 if __name__ == "__main__":
-    raw_dataset = json.load("arithmetic_train.json")
+    raw_dataset = json.load(open("arithmetic_train.json"))
     print(training_config.max_position_embeddings)
     train_dataset = ArithmeticDataset(
         raw_dataset, tokenizer,
