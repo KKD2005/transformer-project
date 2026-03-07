@@ -1,6 +1,6 @@
 import sys
 import os
-
+import json
 _here = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(_here, '..'))        # project root → model/
 sys.path.insert(0, _here)                             # training/ → lr_schedule
@@ -15,8 +15,7 @@ from lr_schedule import get_lr_scheduler
 from tqdm import tqdm
 import numpy as np
 from transformers import PreTrainedTokenizerFast
-from datasets import load_dataset
-from generate_dataset import GSM8KDataset
+from generate_dataset import ArithmeticDataset
 
 @dataclass
 class TrainingConfig:
@@ -33,17 +32,17 @@ class TrainingConfig:
     batch_size: int = 16
     learning_rate: float = 3e-4
     weight_decay: float = 0.1
-    num_epochs: int = 3 #TBD
+    num_epochs: int = 10
     warmup_steps: int = 500
     max_grad_norm: float = 1.0
     save_steps: int = 1000
     eval_steps: int = 200
 
     # Paths
-    output_dir: str = "./gsm8k_model"
+    output_dir: str = "./arithmetic_model"
     log_dir: str = "./logs"
 
-_tokenizer_path = os.path.join(_here, '..', 'data', 'gsm8k_tokenizer.json')
+_tokenizer_path = os.path.join(_here, '..', 'data', 'arithmetic_tokenizer.json')
 if not os.path.exists(_tokenizer_path):
     raise FileNotFoundError(
         f"Tokenizer not found at {_tokenizer_path}\n"
@@ -266,9 +265,9 @@ class Trainer:
 
 
 if __name__ == "__main__":
-    raw_dataset = load_dataset("openai/gsm8k", "main")
+    raw_dataset = json.load("arithmetic_train.json")
     print(training_config.max_position_embeddings)
-    train_dataset = GSM8KDataset(
+    train_dataset = ArithmeticDataset(
         raw_dataset, tokenizer,
         max_length=training_config.max_position_embeddings
     )
