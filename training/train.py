@@ -90,34 +90,51 @@ class TrainingMetrics:
             return 0.0
         return np.mean(self.losses[-last_n:])
 
+def get_writer(log_dir: str):
+    """Get a TensorBoard SummaryWriter, preferring torch's built-in."""
+    try:
+        from torch.utils.tensorboard import SummaryWriter
+    except ImportError:
+        from tensorboardX import SummaryWriter
+    return SummaryWriter(log_dir=log_dir)
+
+
 def evaluate_model(model, tokenizer, test_prompts: List[str], temperature: float = 0.7):
-    """Evaluate model with test prompts"""
+    """Evaluate model with test prompts. Returns list of {prompt_idx, prompt, temperature, generation}."""
     model.eval()
-    
+
     # Get device from model parameters
     device = next(model.parameters()).device
-    
+
     print("Generating samples from trained model:")
     print("=" * 60)
-    
+
+    samples = []
     for i, prompt in enumerate(test_prompts):
         print(f"\nPrompt {i+1}: '{prompt}'")
         print("-" * 40)
-        
+
         # Tokenize prompt
         input_ids = tokenizer.encode(prompt, return_tensors='pt').to(device)
-        
+
         # Generate with different temperatures
         with torch.no_grad():
             generated_ids = model.generate(
-                input_ids, 
+                input_ids,
                 max_new_tokens=150,
                 temperature=temperature
             )
-            
+
             generated_text = tokenizer.decode(generated_ids[0], skip_special_tokens=True)
             print(f"Temperature {temperature}: {generated_text}")
             print()
+            samples.append({
+                "prompt_idx": i + 1,
+                "prompt": prompt,
+                "temperature": temperature,
+                "generation": generated_text,
+            })
+    return samples
 
 def save_model(model, tokenizer, save_path: str):
     """Save model and tokenizer"""
@@ -159,6 +176,7 @@ class Trainer:
         self.global_step = 0
         os.makedirs(config.output_dir, exist_ok=True)
         os.makedirs(config.log_dir, exist_ok=True)
+        self.writer = get_writer(config.log_dir)
 
     def train_step(self, batch) -> float:
         """
@@ -239,6 +257,10 @@ class Trainer:
                 self.metrics.update(loss, current_lr)
                 self.global_step += 1
 
+                self.writer.add_scalar("train/loss", loss, self.global_step)
+                self.writer.add_scalar("train/avg_loss", self.metrics.get_avg_loss(), self.global_step)
+                self.writer.add_scalar("train/lr", current_lr, self.global_step)
+
                 progress_bar.set_postfix({
                     'loss': f'{loss:.4f}',
                     'avg_loss': f'{self.metrics.get_avg_loss():.4f}',
@@ -247,9 +269,15 @@ class Trainer:
 
                 if self.global_step % self.config.eval_steps == 0:
                     print(f"\nEvaluating model at step {self.global_step}:")
-                    evaluate_model(self.model, self.tokenizer, ["<problem>What is ((192 \u00d7 9) + 31) + 22?</problem>\n", "<problem>What is (57 \u00d7 5) + 11?</problem>\n","<problem>Find the value of (16 - 23) \u00d7 6.</problem>\n" ])
-                    
-                    
+                    samples = evaluate_model(self.model, self.tokenizer, ["<problem>What is ((192 \u00d7 9) + 31) + 22?</problem>\n", "<problem>What is (57 \u00d7 5) + 11?</problem>\n","<problem>Find the value of (16 - 23) \u00d7 6.</problem>\n" ])
+                    for s in samples:
+                        md = (
+                            f"**Prompt:** `{s['prompt']}`  \n"
+                            f"**Temperature:** {s['temperature']}  \n\n"
+                            f"**Generation:**  \n```\n{s['generation']}\n```"
+                        )
+                        self.writer.add_text(f"eval/prompt_{s['prompt_idx']}", md, self.global_step)
+
                 if self.global_step%self.config.save_steps==0:
                     checkpoint_path = os.path.join(
                         self.config.output_dir,
@@ -260,7 +288,16 @@ class Trainer:
 
             avg_epoch_loss = epoch_loss / num_batches
             print(f"Epoch {epoch + 1} completed. Average loss: {avg_epoch_loss:.4f}")
+            self.writer.add_scalar("epoch/avg_loss", avg_epoch_loss, epoch + 1)
+
         save_model(self.model, self.tokenizer, self.config.output_dir)
+
+        hparams = {k: (int(v) if isinstance(v, bool) else v)
+                   for k, v in vars(self.config).items()
+                   if isinstance(v, (int, float, bool, str))}
+        self.writer.add_hparams(hparams, {"hparam/final_avg_loss": avg_epoch_loss})
+        self.writer.close()
+        print(f"TensorBoard logs written to {self.config.log_dir}")
         print("Training completed!")
 
 
